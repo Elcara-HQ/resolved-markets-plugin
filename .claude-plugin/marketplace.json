@@ -1,0 +1,32 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "resolved-markets-plugins",
+  "description": "Plugins for Resolved Markets — high-frequency Polymarket prediction-market orderbook data",
+  "owner": {
+    "name": "Resolved Markets",
+    "url": "https://resolvedmarkets.com"
+  },
+  "plugins": [
+    {
+      "name": "resolved-markets",
+      "displayName": "Resolved Markets",
+      "source": "./plugins/resolved-markets",
+      "description": "Live and historical Polymarket prediction-market orderbook data: odds, price history, executed trades, settlement results, and backtesting. Covers crypto, sports, weather, economics, social, and equities markets, plus Hyperliquid perpetual futures.",
+      "category": "data",
+      "keywords": [
+        "polymarket",
+        "prediction-markets",
+        "orderbook",
+        "backtesting",
+        "crypto",
+        "trading-data",
+        "market-data"
+      ],
+      "homepage": "https://resolvedmarkets.com",
+      "author": {
+        "name": "Resolved Markets",
+        "url": "https://resolvedmarkets.com"
+      }
+    }
+  ]
+}

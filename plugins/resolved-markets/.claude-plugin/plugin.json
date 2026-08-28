@@ -1,0 +1,21 @@
+{
+  "name": "resolved-markets",
+  "displayName": "Resolved Markets",
+  "version": "1.0.0",
+  "description": "Live and historical Polymarket prediction-market orderbook data: odds, price history, executed trades, settlement results, and backtesting. Covers crypto, sports, weather, economics, social, and equities markets, plus Hyperliquid perpetual futures.",
+  "author": {
+    "name": "Resolved Markets",
+    "url": "https://resolvedmarkets.com"
+  },
+  "homepage": "https://resolvedmarkets.com",
+  "repository": "https://github.com/Elcara-HQ/resolved-markets-plugin",
+  "keywords": [
+    "polymarket",
+    "prediction-markets",
+    "orderbook",
+    "backtesting",
+    "crypto",
+    "trading-data",
+    "market-data"
+  ]
+}
