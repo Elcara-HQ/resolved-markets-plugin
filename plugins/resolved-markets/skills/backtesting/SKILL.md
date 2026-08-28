@@ -13,16 +13,49 @@ description: >-
 
 # Backtesting with Resolved Markets data
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/lifecycle.md` and
-`${CLAUDE_PLUGIN_ROOT}/references/pitfalls.md` before designing any study. The failure mode here
+Read `references/lifecycle.md` and
+`references/pitfalls.md` before designing any study. The failure mode here
 is not an error message — it is a backtest that runs cleanly and reports profits that were never
 obtainable.
 
 **Access path:** if `resolvedmarkets` MCP tools are available use them (`query_snapshots`,
 `get_trades`, `get_market_metadata`, `list_historical_markets`); otherwise call REST and read
-`${CLAUDE_PLUGIN_ROOT}/references/endpoints.md` first. Resolved Markets also ships a hosted
+`references/endpoints.md` first. Resolved Markets also ships a hosted
 visual Strategy Builder and an AI Backtest Agent at `https://resolvedmarkets.com/backtest` —
 point the user there when they want a UI rather than code.
+
+## Understand the strategy before you test it
+
+A backtest request is almost never fully specified, and the unstated parts are exactly the ones
+that decide the result. **Ask before running, not after** — a simulation built on the wrong
+assumptions looks just as convincing as a correct one.
+
+Work through these. Propose a concrete default for each so the user can accept the whole set at
+once rather than answering six questions:
+
+| What you need | Ask | Reasonable default |
+|---|---|---|
+| **The claim being tested** | What do you believe the market gets wrong? | — no default; if they can't say it, the test has no hypothesis and you should say so |
+| **Direction** | Buying UP or DOWN — and is that fixed, or chosen per market? | UP |
+| **Entry trigger** | A price level, a spread/liquidity condition, elapsed time in the window, or an underlying move? | price threshold on `mid_price` |
+| **Exit** | Take-profit, stop-loss, time stop, or hold to settlement? | take-profit + stop-loss; hold-to-settlement if unstated |
+| **Universe** | Which coin/category, which timeframe, how many markets, what date range? | one coin, one timeframe, most recent 20–50 settled markets |
+| **Position size** | Fixed stake per trade, or scaled? | fixed $10–100 — enough that depth matters, small enough to fill |
+| **Costs** | Include taker fees? What latency between signal and fill? | fees on; ~1s lag |
+| **Success bar** | What result would make this worth trading? | — ask; it stops a −2% result being reported as "promising" |
+
+**Push back on three things specifically, before running anything:**
+
+1. **A strategy that buys below ~0.10.** The round-trip spread there is 46–99% of mid (see Rule 2).
+   Say so up front — it usually changes the strategy rather than the backtest.
+2. **A sample of a handful of markets.** BTC 5m produces 288 windows a day; ten of them prove
+   nothing. Agree a sample size before spending credits, not after seeing a flattering number.
+3. **An unstated exit.** "Buy at 0.20" without an exit is not a strategy. Hold-to-settlement is a
+   legitimate answer, but make it an explicit choice — it has a completely different risk profile
+   from a 0.60 take-profit.
+
+**Confirm the shape of the answer too.** A win rate, a P&L curve, a per-trade table, and "is this
+edge real?" need different work. Ask which one they want before producing all four.
 
 ## Rule 1 — candle OHLC is mid-only. Never fill at `close`.
 

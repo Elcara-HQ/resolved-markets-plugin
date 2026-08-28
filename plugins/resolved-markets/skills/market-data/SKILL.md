@@ -35,13 +35,43 @@ Check once, at the start, then stay on that path.
    shape, tier gates, and credit cost. Do not restate those here; this skill supplies the
    judgment layer instead: which tool answers which question, and how to read the result.
 2. **No MCP tools** — call the REST API directly over HTTPS with an `X-API-Key: rm_...` header
-   against `https://api.resolvedmarkets.com`. Read `${CLAUDE_PLUGIN_ROOT}/references/endpoints.md`
-   before your first call, and `${CLAUDE_PLUGIN_ROOT}/references/response-shapes.md` before
+   against `https://api.resolvedmarkets.com`. Read `references/endpoints.md`
+   before your first call, and `references/response-shapes.md` before
    parsing a response.
 3. **Neither** (no connector, no key) — run `/resolved-markets:setup`.
 
 Everything below applies to both paths. Where a step differs, the REST equivalent is named in
 parentheses.
+
+## Scope the request before you spend
+
+**Answer simple questions immediately.** "What are the BTC 5m odds?", "who won last night's
+game?", "what markets exist?" are unambiguous — resolve and answer. Asking a clarifying question
+there is friction, not diligence.
+
+**Ask first when a wrong guess would waste the user's credits or produce the wrong artifact.**
+That means: any pull spanning more than a few hours, anything with `includebook=true`, anything
+described vaguely ("get me BTC data", "analyse this market", "export the history"), or anything
+you would run more than a handful of times.
+
+When you do ask, ask only the questions whose answers change what you run, and offer a sensible
+default with each so the user can say "just do that":
+
+| Decision | Ask | Default if they don't care |
+|---|---|---|
+| **Which market** | Coin + timeframe, a slug, or a date/event? | Current window of the named series |
+| **Time span** | Live now, one past instant, or a range? | Live for prices; the market's full lifetime for history |
+| **Resolution** | One summary number, a candle series, or every stored tick? | `interval=1m` candles — one call instead of dozens of pages |
+| **Depth** | Best bid/ask only, size at the touch, or the full ladder? | Top-of-book. **Only add `includebook=true` if they need levels** — rows are ~10× heavier and the page cap drops to 2,000 |
+| **Side** | UP only, or both legs? | `side=UP` — DOWN mid ≈ 1 − UP mid on the same tick |
+| **Scale** | One market, or a series across many windows? | One, then confirm before fanning out — BTC 5m alone is 288 markets/day |
+
+**Say what it will cost before a large pull.** Discovery is 1 credit; snapshots and trades are 5
+per page. "That's about 40 pages, roughly 200 credits — want me to narrow the window or sample
+with candles instead?" is a better move than silently spending it.
+
+**Check tier scope before promising anything.** Free and Pro are crypto-only. If someone asks for
+sports or weather data on a Free key, say so up front rather than after a `403`.
 
 ## Task router
 
@@ -134,7 +164,7 @@ are equally accepted. Malformed values return `400`, not wrong data.
 ## Categories and filters
 
 Six categories: `crypto`, `sports`, `economics`, `weather`, `social`, `equities`.
-Full subcategory and timeframe lists: `${CLAUDE_PLUGIN_ROOT}/references/catalog.md`.
+Full subcategory and timeframe lists: `references/catalog.md`.
 
 **The catalog is a snapshot; the live API is the source of truth.** These files ship with the
 plugin and change only when it is updated, while coverage grows continuously — new sports leagues,
@@ -164,7 +194,7 @@ need Scale or Enterprise.
 Ten worked recipes — current price, the market live at a past instant, deep-history walking,
 studying one market end to end, reassembling a grouped event, settlement audits, weather, sports,
 market-vs-underlying, and building a resolved dataset — are in
-`${CLAUDE_PLUGIN_ROOT}/references/recipes.md`. Read it when a request needs more than a single
+`references/recipes.md`. Read it when a request needs more than a single
 lookup.
 
 Two lifecycle facts worth knowing before you quote a historical price at all:
@@ -177,7 +207,7 @@ Two lifecycle facts worth knowing before you quote a historical price at all:
   every `from`/`to` inside it.
 
 Full lifecycle table (when each series opens, when its book becomes usable, when it settles):
-`${CLAUDE_PLUGIN_ROOT}/references/lifecycle.md`.
+`references/lifecycle.md`.
 
 ## Reporting rules
 
@@ -192,5 +222,5 @@ Full lifecycle table (when each series opens, when its book becomes usable, when
 6. **Mind the user's credits.** Every call spends their allowance. Prefer 1-credit discovery
    calls; don't fan out speculatively. If they have their own pipeline for the same data and told
    you to use it, use that.
-7. **When results look wrong, check `${CLAUDE_PLUGIN_ROOT}/references/pitfalls.md`** before
+7. **When results look wrong, check `references/pitfalls.md`** before
    declaring data missing. Most anomalies there are documented, intended behavior.

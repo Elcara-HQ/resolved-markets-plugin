@@ -50,11 +50,24 @@ while IFS= read -r s; do
   if [ "$n" -gt 500 ]; then bad "$s is $n lines (cap 500)"; else ok "$s ($n lines)"; fi
 done < <(find plugins -name SKILL.md)
 
-echo "== 8. referenced files exist =="
-while IFS= read -r ref; do
-  [ -f "plugins/resolved-markets/references/$ref" ] || bad "missing references/$ref"
-done < <(grep -rhoE 'references/[a-z-]+\.md' plugins/resolved-markets/skills | sed 's|references/||' | sort -u)
-ok "reference links checked"
+echo "== 8. every skill's reference links resolve from its own directory =="
+missing=0
+for s in plugins/resolved-markets/skills/*/SKILL.md; do
+  d=$(dirname "$s")
+  for ref in $(grep -oE 'references/[a-z-]+\.md' "$s" | sort -u); do
+    [ -f "$d/$ref" ] || { bad "$s cites $ref but $d/$ref is missing"; missing=1; }
+  done
+done
+[ "$missing" = "0" ] && ok "all reference links resolve"
+
+echo "== 8b. duplicated references identical across skills (drift) =="
+drift=0
+for f in $(find plugins/resolved-markets/skills -path '*/references/*' -name '*.md' -exec basename {} \; | sort -u); do
+  n=$(find plugins/resolved-markets/skills -path '*/references/*' -name "$f" | wc -l | tr -d ' ')
+  u=$(find plugins/resolved-markets/skills -path '*/references/*' -name "$f" -exec shasum {} \; | awk '{print $1}' | sort -u | wc -l | tr -d ' ')
+  if [ "$n" -gt 1 ] && [ "$u" -gt 1 ]; then bad "$f differs across its $n copies"; drift=1; fi
+done
+[ "$drift" = "0" ] && ok "no drift between duplicated references"
 
 echo "== 9. plugin validation =="
 if command -v claude >/dev/null 2>&1; then

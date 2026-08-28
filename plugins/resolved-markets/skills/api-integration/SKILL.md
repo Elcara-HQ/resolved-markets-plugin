@@ -23,9 +23,36 @@ the API correctly from code.
 | Interactive docs | `https://resolvedmarkets.com/docs` |
 | OpenAPI 3.1 spec | `https://resolvedmarkets.com/openapi.json` |
 
-Full endpoint reference: `${CLAUDE_PLUGIN_ROOT}/references/endpoints.md`.
-Response field shapes: `${CLAUDE_PLUGIN_ROOT}/references/response-shapes.md`.
-WebSocket protocol: `${CLAUDE_PLUGIN_ROOT}/references/websocket.md`.
+Full endpoint reference: `references/endpoints.md`.
+Response field shapes: `references/response-shapes.md`.
+WebSocket protocol: `references/websocket.md`.
+
+## Establish what they're building first
+
+Two questions decide most of the code, and guessing wrong means a rewrite:
+
+1. **Live or historical?** Continuous prices → WebSocket (Pro+, 2 s push, no per-message credits).
+   A finite pull → REST with `from`/`to`. Both → say so, they're different code paths.
+2. **How much data?** A single lookup, a backfill of months, or a process that runs forever? This
+   sets pagination, retry policy, and whether credits are a real constraint.
+
+Then, only if the answer isn't already obvious from what they've said:
+
+| Decision | Ask | Default |
+|---|---|---|
+| Language / runtime | Python, TypeScript, shell, something else? | Python |
+| Depth per row | Best bid/ask, size at the touch (`touchsize=true`), or the full ladder (`includebook=true`)? | best bid/ask — the ladder is ~10× heavier and caps pages at 2,000 |
+| Granularity | Every stored tick, or downsampled candles (`interval=`)? | candles for anything wider than a few hours |
+| Where output goes | Printed, a file, a dataframe, a database? | print, then adapt |
+| Key storage | Environment variable, secret manager, CI secret? | `RESOLVED_MARKETS_API_KEY` env var |
+
+**Give a credit estimate before writing a backfill.** Snapshots and trades are 5 credits per page,
+so "500 markets × ~3 pages ≈ 7,500 credits" is worth stating while the design is still changeable —
+Free only has 5,000 a month.
+
+**Confirm their tier if the plan needs it.** WebSocket needs Pro or above; sports, weather,
+economics, social, equities and the exchange endpoints need Scale. Better to raise it now than to
+hand over code that 403s.
 
 ## Authentication
 
@@ -130,7 +157,7 @@ and still costs credits: `/v1/public-stats` 5 s · `history/recent` 10 s · `/v1
 
 For continuous live prices on Pro+, use the **WebSocket** (2 s push, no per-message credits)
 instead of polling REST orderbooks. Protocol, auth handshake, close codes and a working Python
-client: `${CLAUDE_PLUGIN_ROOT}/references/websocket.md`.
+client: `references/websocket.md`.
 
 ## A minimal, correct client
 
@@ -157,6 +184,6 @@ rm_get.spent = 0
 assert S.get(f"{BASE}/v1/api-keys/validate", timeout=10).json()["valid"]
 ```
 
-Before shipping anything, check `${CLAUDE_PLUGIN_ROOT}/references/pitfalls.md` — several
+Before shipping anything, check `references/pitfalls.md` — several
 documented behaviors (DESC ordering, empty 200s on wrong-case filters, ignored `offset`,
 string-typed big integers) look like bugs and are not.
