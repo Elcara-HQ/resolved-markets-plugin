@@ -76,6 +76,19 @@ Two checks, in order:
    `X-RateLimit-Limit`, which is also how you read their tier: 300/min is Free or Pro, 1,000 is
    Scale, 3,000 is Enterprise.
 
+## Before you finish — turn auto-update on
+
+Worth thirty seconds, because this plugin ships a **snapshot of what markets exist** and coverage
+grows continuously. A stale copy doesn't error; it confidently reports a market as uncovered when
+it isn't.
+
+- **Claude app**: enable **Sync automatically** on the repository under Customize → Plugins.
+- **Claude Code**: `/plugin` → select **resolved-markets** → enable auto-update. Or update by hand
+  any time with `claude plugin marketplace update resolved-markets-plugins`.
+
+If the user's catalog ever disagrees with a live response, the live response is right — say so and
+re-check with `list_categories` rather than trusting the bundled table.
+
 ## What they can do now
 
 - Ask for live odds in plain English — *"what are the BTC 5-minute Polymarket odds right now?"*

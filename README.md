@@ -39,6 +39,26 @@ claude plugin install resolved-markets@resolved-markets-plugins
 
 Then run `/resolved-markets:setup`.
 
+### Keep it updated — this matters more than for most plugins
+
+**Turn auto-update on.** In the Claude app that's **Sync automatically** when you add the
+repository; in Claude Code, open `/plugin`, select this plugin, and enable auto-update. Without it
+you keep whatever version you installed, forever.
+
+That matters here because the plugin ships a **snapshot of what markets exist** — coins,
+leagues, cities, series. Coverage grows continuously on our side with no change on yours, so a
+stale copy doesn't fail loudly: it confidently tells you a market isn't covered when it is. Tennis
+went live between two releases and the shipped catalog was wrong until the next version.
+
+To pull updates by hand at any time:
+
+```bash
+claude plugin marketplace update resolved-markets-plugins
+```
+
+The skills also tell Claude that the live API wins whenever it disagrees with the bundled catalog,
+so a stale install degrades gracefully rather than lying — but updating is better.
+
 ## Try it
 
 ```
