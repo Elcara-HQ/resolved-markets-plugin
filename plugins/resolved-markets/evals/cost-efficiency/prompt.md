@@ -1,0 +1,1 @@
+I'm on the Free plan. I want to monitor the live BTC 5-minute orderbook continuously, and also pull the full price history of yesterday's BTC daily market. What's the cheapest way to do both with your API?

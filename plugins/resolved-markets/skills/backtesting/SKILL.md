@@ -63,12 +63,18 @@ once rather than answering six questions:
 **Confirm the shape of the answer too.** A win rate, a P&L curve, a per-trade table, and "is this
 edge real?" need different work. Ask which one they want before producing all four.
 
+Cost arithmetic for a study — rows per credit, when candles pay off, and what a run of N markets
+adds up to — is in `references/cost-model.md`. The headline: a
+whole 1d market is **5** credits as candles versus **40** raw, while a 5m window is **5** either
+way; an agent compile plus run is **25 + 25**.
+
 **And confirm the two knobs that set what the run costs**, since a backtest is the most expensive
 thing this data gets used for: **how many markets** (20–50 settled windows is the default; BTC 5m
 produces 288 a day, so "last month" is ~8,600 markets and thousands of credits) and **how much
 book per row** — `touchsize=true` is enough to check a stake fits at the touch, while
-`includebook=true` is ~10× heavier and only earns its cost when the stake genuinely walks the
-ladder (see Rule 4).
+`includebook=true` drops the page cap 5,000→2,000, so it costs 2.5× the credits per row (the
+bytes are a milder 1.9–5.5×) and only earns that when the stake genuinely walks the ladder
+(see Rule 4).
 
 ## Rule 1 — candle OHLC is mid-only. Never fill at `close`.
 
@@ -121,8 +127,9 @@ tokens, say this before running anything.
 `avg_bid_depth`/`avg_ask_depth` (candles) and `bid_depth_total`/`ask_depth_total` (raw) are
 **whole-book totals in dollars**. For "how much could I actually fill at the best price", request
 `touchsize=true` → `best_bid_size` / `best_ask_size`, **in shares**. That is far lighter than
-pulling ladders. Only use `includebook=true` when your size genuinely exceeds the touch — those
-rows are ~10× heavier and the page cap drops to 2000.
+pulling ladders — measured at **1.08×** a plain row, versus **1.9–5.5×** for the full ladder.
+Only use `includebook=true` when your size genuinely exceeds the touch: the page cap drops
+5,000→2,000, which costs 2.5× the credits for the same number of rows.
 
 The best level is thinner than people assume: at stop-crossing instants it holds a median of ~54
 shares. A $10 stake exceeds it 19% of the time, $100 74%, $1,000 99.7%. If the user is modelling

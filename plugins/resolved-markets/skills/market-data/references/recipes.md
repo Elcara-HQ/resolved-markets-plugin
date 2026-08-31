@@ -10,7 +10,7 @@ One-shot patterns for the common jobs (base URL and `X-API-Key` header implied o
 1. `GET /v1/markets/history/recent?crypto=BTC&timeframe=5m&limit=500` → note the page's oldest `last_seen`.
 2. Next page: same query + `before=<that last_seen>`. Repeat.
 3. Expect ~1 row of overlap at each cursor boundary — dedupe by `market_id`.
-Or jump straight to an era: `?before=2026-05-01&order=oldest` starts from the oldest stored markets active before May 1. For a full dataset build, `GET /v1/markets/history` (no pagination, heavier) lists every stored market for the filter in one call.
+Or jump straight to an era: `?before=2026-05-01&order=oldest` starts from the oldest stored markets active before May 1. For a full dataset build, `GET /v1/markets/history` lists every stored market for the filter in one **1-credit** call with no pagination — **but it has no cursor and times out on high-cardinality filters.** Measured: `crypto=BTC&timeframe=1d` (157 markets) 3 s, `category=sports&subcategory=ATP` (3,336) 19 s, `crypto=BTC&timeframe=1h` (3,745) 26 s — while `timeframe=15m` and `timeframe=5m` both time out. Use it for a low-cardinality filter; page `history/recent` (500/page, 1 credit, ~7 s) for a short-timeframe crypto series.
 
 **R4 — Study one market end-to-end (works for any age).**
 1. Identity/result: `GET /v1/markets/metadata?market_id=<id>` — question, outcomes, `end_date`, `resolved_outcome`.

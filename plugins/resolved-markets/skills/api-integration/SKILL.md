@@ -47,7 +47,7 @@ Then, only if the answer isn't already obvious from what they've said:
 | Decision | Ask | Default |
 |---|---|---|
 | Language / runtime | Python, TypeScript, shell, something else? | Python |
-| Depth per row | **Do they need the orderbook levels?** Best bid/ask, size at the touch (`touchsize=true`), or the full ladder (`includebook=true`)? | best bid/ask — the ladder is ~10× heavier and caps pages at 2,000 |
+| Depth per row | **Do they need the orderbook levels?** Best bid/ask, size at the touch (`touchsize=true`), or the full ladder (`includebook=true`)? | best bid/ask; `touchsize` is ~1.08× the bytes so add it freely — the full ladder caps pages at 2,000, i.e. 2.5× the credits per row |
 | Market count | **How many markets does it cover?** One, a fixed recent sample, or a whole category over a date range? | one — confirm before fanning out; BTC 5m alone is 288 markets/day |
 | Granularity | Every stored tick, or downsampled candles (`interval=`)? | candles for anything wider than a few hours |
 | Where output goes | Printed, a file, a dataframe, a database? | print, then adapt |
@@ -93,7 +93,8 @@ Free.** Only successful (2xx) responses are charged.
 | `/v1/markets/:id/snapshots`, `/v1/markets/:id/trades` | 5 |
 | `/v1/markets/:id/summary`, `/api/snapshot` | 3 |
 | Everything else metered (live, orderbook, by-slug, metadata, categories, history, exchange) | 1 |
-| `/health`, `/v1/public-stats`, `/v1/api-keys/validate` | **0** |
+| `/health`, `/v1/public-stats`, `/v1/api-keys/validate`, `/v1/backtest/templates`, `/v1/backtest/runs/*`, **every WebSocket message** | **0** |
+| `/v1/backtest/agent`, `/v1/backtest/run` (and their `/v2/` twins) | 25 |
 
 | Tier | Price | Monthly credits | Rate limit | WS conns | API keys | Categories |
 |---|---|---|---|---|---|---|
@@ -113,6 +114,17 @@ $50 → 100,000.
 **Read your tier straight off the response headers** — there is no API-key-callable tier endpoint.
 `X-RateLimit-Limit` pins the row (300 / 1000 / 3000) and `X-Credits-Remaining` separates Free from
 Pro, which share 300.
+
+Full route-by-route table, rows-per-credit, and the cheapest call for each job:
+`references/cost-model.md`.
+
+### `X-Credits-*` are invisible to browser JavaScript
+
+The API's `Access-Control-Expose-Headers` lists only `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+and `X-RateLimit-Reset` — **not** the credit headers. They are sent on every response and any
+server-side client (curl, Python, Node) reads them fine, but a cross-origin `fetch()` in a browser
+gets `null` from `response.headers.get('X-Credits-Cost')`. Don't build a browser-side credit meter
+on them; meter server-side, or track spend from your own call counts.
 
 ### `X-Credits-Remaining` is a gauge, not a ledger
 
@@ -145,14 +157,27 @@ ceiling that applies. A page therefore never comes back quietly short.
 
 ## Writing efficient clients
 
-- **Wide time windows → `interval=` candles**, one 5-credit call, never dozens of raw pages.
+- **Wide time windows → `interval=` candles**, one 5-credit call, never dozens of raw pages — but
+  only once one side exceeds 5,000 rows (one page). Measured whole-market, one side: a 1d crypto
+  market is 8 raw pages (40 credits) versus one candle call (5) — **8×**; a 5m window is a single
+  page, so candles cost **exactly the same** and lose detail. `snapshot_count` from
+  `history/recent` (1 credit) tells you which case you're in before you spend.
 - **One side is usually enough** → `side=UP` (DOWN mid ≈ 1 − UP mid on the same tick).
-- **`count=false`** on `/snapshots` and `/trades` when you don't need totals.
-- **`includebook=true` only when you need depth levels** — rows are ~10× heavier and the page cap
-  drops to 2,000. For "how much is at the touch", `touchsize=true` is far lighter.
+- **`includebook=true` only when you need depth levels** — the page cap drops 5,000→2,000, so it
+  costs **2.5× the credits** for the same row count (bytes are a milder 1.9–5.5×, measured). For
+  "how much is at the touch", `touchsize=true` costs ~1.08× and is effectively free.
+- **`count=false` is not a cost lever** — same credits, and measured at 94% of `count=true`
+  latency, inside the noise. Use it when you don't need `total`, not to go faster.
 - **Always window long-lived markets** with `from`/`to`. Unwindowed pulls on a live market
   silently cover only ~36 h.
-- **Batch identity lookups**: `metadata?market_id=id1,id2,id3` in one 1-credit call instead of N.
+- **Batch identity lookups**: `metadata?market_id=id1,id2,id3` in one 1-credit call instead of N —
+  up to 1,000 markets. It is also the one route that **clamps silently** (`limit=5000` returns
+  1,000 rows with a `200`), so check the returned count against your batch size.
+- **Hyperliquid series are the cheapest data in the API**: `/v1/exchange/snapshots` returns up to
+  5,000 rows for **1** credit — 5× the rows per credit of `/v1/markets/:id/snapshots`.
+- **Bulk discovery**: `/v1/markets/history` is 1 credit for unlimited rows, but has no cursor and
+  **times out on high-cardinality filters** (measured: ATP's 3,336 markets 19 s ✅, BTC 1h's 3,745
+  26 s ✅, BTC 15m and 5m both time out). Page `history/recent` for those.
 - **Page deep history with a `before` cursor, never `offset`** — `offset` is accepted and
   **ignored** on `/v1/markets/history/recent`. Expect ~1 row of overlap per cursor boundary;
   dedupe by `market_id`.
@@ -162,9 +187,11 @@ and still costs credits: `/v1/public-stats` 5 s · `history/recent` 10 s · `/v1
 30 s · `/summary` 15 s · `/api/snapshot` 5 s · `/api/snapshot/latest` 3 s ·
 `/v1/exchange/orderbook` 1 s.
 
-For continuous live prices on Pro+, use the **WebSocket** (2 s push, no per-message credits)
-instead of polling REST orderbooks. Protocol, auth handshake, close codes and a working Python
-client: `references/websocket.md`.
+**The single largest saving in the API: stream instead of poll.** `/v1/markets/:id/orderbook` is
+1 credit per call and is **not cached at all**, so polling one market every 2 s costs 43,200
+credits/day — more than eight times Free's entire monthly allowance — while the WebSocket pushes
+every 2 s for **0 credits per message**. Use it for anything continuous on Pro+. Protocol, auth
+handshake, close codes and a working Python client: `references/websocket.md`.
 
 ## A minimal, correct client
 

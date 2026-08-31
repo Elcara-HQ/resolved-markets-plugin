@@ -14,8 +14,8 @@ failure of the two.
 **Ask before running when any of these is true:**
 
 - The pull spans **more than a few hours** of market time.
-- It would use **`includebook=true`** (full ladder), which is ~10× heavier per row and drops the
-  page cap to 2,000.
+- It would use **`includebook=true`** (full ladder), which drops the page cap from 5,000 to 2,000
+  — 2.5× the credits for the same row count (the bytes are a milder 1.9–5.5×).
 - It covers **more than one market** — "BTC 5m for last week" is 2,016 markets, not one.
 - The request is **vague about the artifact**: "get me BTC data", "analyse this market",
   "export the history", "backtest this idea".
@@ -54,7 +54,7 @@ Pick only the rows that are actually undetermined. Defaults are the first option
 
 | Header | Question | Options (first = default) |
 |---|---|---|
-| `Depth` | **Do you need the orderbook itself, or just the price?** | **Top of book** — best bid/ask + mid, ~5 cr/page (Recommended) · **Touch size** — `touchsize=true`, adds shares available at the best price, still light · **Full ladder** — `includebook=true`, every level; ~10× heavier rows, page cap drops to 2,000 |
+| `Depth` | **Do you need the orderbook itself, or just the price?** | **Top of book** — best bid/ask + mid, ~5 cr/page (Recommended) · **Touch size** — `touchsize=true`, adds shares available at the best price, still light · **Full ladder** — `includebook=true`, every level; page cap drops to 2,000, so 2.5× the credits per row |
 | `How many` | **How many markets?** | **Just this one** (Recommended) · **Last 20–50 settled windows** — enough for a distribution · **A date range** — say which; BTC 5m alone is 288 markets/day · **Every market in the category** |
 | `Time span` | **Which period?** | **Live now** (Recommended for prices) · **This market's full lifetime** — `first_seen`→`last_seen` (Recommended for history) · **One exact past instant** · **A from/to range I'll give you** |
 | `Resolution` | **How fine-grained?** | **1-minute candles** — one call, 5 cr (Recommended) · **15-second candles** · **Every stored tick** — ~20 Hz; dozens of pages, 5 cr each · **Just one summary number** — 3 cr |

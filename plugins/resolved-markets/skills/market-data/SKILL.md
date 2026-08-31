@@ -68,8 +68,8 @@ numbered block naming the default for each.
 The two that are wrong most often, so ask them explicitly rather than assuming:
 
 - **"Do you need the orderbook itself, or just the price?"** — top of book *(default)* / size at
-  the touch (`touchsize=true`) / full ladder (`includebook=true`, ~10× heavier rows, page cap
-  drops to 2,000).
+  the touch (`touchsize=true`, ~1.08× the bytes — effectively free) / full ladder
+  (`includebook=true`, page cap drops 5,000→2,000, so 2.5× the credits per row).
 - **"How many markets?"** — just this one *(default)* / the last 20–50 settled windows / a date
   range. BTC 5m alone is 288 markets a day.
 
@@ -77,8 +77,8 @@ The two that are wrong most often, so ask them explicitly rather than assuming:
 |---|---|---|
 | **Which market** | Coin + timeframe, a slug, or a date/event? | Current window of the named series |
 | **Time span** | Live now, one past instant, or a range? | Live for prices; the market's full lifetime for history |
-| **Resolution** | One summary number, a candle series, or every stored tick? | `interval=1m` candles — one call instead of dozens of pages |
-| **Depth** | Best bid/ask only, size at the touch, or the full ladder? | Top-of-book. **Only add `includebook=true` if they need levels** — rows are ~10× heavier and the page cap drops to 2,000 |
+| **Resolution** | One summary number, a candle series, or every stored tick? | `interval=1m` candles **when one side exceeds 5,000 rows** (8× cheaper on a 1d market); raw is the same price and more detailed below that |
+| **Depth** | Best bid/ask only, size at the touch, or the full ladder? | Top-of-book. `touchsize=true` is ~1.08× the bytes, so add it freely; **only add `includebook=true` if they need levels** — the page cap drops 5,000→2,000, i.e. 2.5× the credits per row |
 | **Side** | UP only, or both legs? | `side=UP` — DOWN mid ≈ 1 − UP mid on the same tick |
 | **Scale** | One market, or a series across many windows? | One, then confirm before fanning out — BTC 5m alone is 288 markets/day |
 
@@ -91,6 +91,19 @@ is, whether a market settled — those are 1-credit calls, not questions.
 **Say what it will cost before a large pull.** Discovery is 1 credit; snapshots and trades are 5
 per page. "That's about 40 pages, roughly 200 credits — want me to narrow the window or sample
 with candles instead?" is a better move than silently spending it.
+
+Full verified cost table, rows-per-credit, and the cheapest route for each job:
+`references/cost-model.md`. Four things from it that change what you
+call, every time:
+
+- **Continuous live prices belong on the WebSocket, not a poll.** `/orderbook` is 1 credit per
+  call and is **not cached**, so polling one market every 2 s is 43,200 credits/day; the socket is
+  0 per message.
+- **A cache `HIT` still costs full price** — polling faster than a route's TTL buys nothing.
+- **`/api/snapshot` (3) beats a 1-row `/snapshots` page (5)** for the book at one past instant,
+  and **`/api/snapshot/latest` is only 1**.
+- **`/v1/exchange/snapshots` returns up to 5,000 rows for 1 credit** — the cheapest time series in
+  the API, 5× the rows per credit of `/v1/markets/:id/snapshots`.
 
 **Check tier scope before promising anything.** Free and Pro are crypto-only. If someone asks for
 sports or weather data on a Free key, say so up front rather than after a `403`.
@@ -239,8 +252,10 @@ Full lifecycle table (when each series opens, when its book becomes usable, when
 3. **Report markets by identity**: slug + question + end date, not a bare hex ID, so the user can
    act on the answer.
 4. **On an empty 200, suspect the filter string** before concluding the data doesn't exist.
-5. **Window long-lived markets** and use `interval=` candles for anything wider than a few hours —
-   one call instead of dozens of pages.
+5. **Window long-lived markets**, and use `interval=` candles once one side exceeds 5,000 rows —
+   one call instead of dozens of pages (measured 8× cheaper on a 1d crypto market, but *no*
+   saving on a 5m window, which fits in one page). `snapshot_count` from `history/recent` tells
+   you which case you're in for 1 credit.
 6. **Mind the user's credits.** Every call spends their allowance. Prefer 1-credit discovery
    calls; don't fan out speculatively. If they have their own pipeline for the same data and told
    you to use it, use that.
