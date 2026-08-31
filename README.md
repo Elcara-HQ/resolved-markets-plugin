@@ -21,6 +21,13 @@ orderbooks at up to ~20 Hz per token and stores every snapshot, trade, and settl
 Coverage: crypto up/down and hit-price markets (BTC, ETH, SOL, XRP, DOGE, HYPE, BNB), sports,
 weather, economics, social, and equities — plus Hyperliquid perpetual-futures orderbooks.
 
+**Credit-aware by design.** Simple questions get answered straight away. But before an expensive
+or under-specified pull, Claude asks — as a single batched multiple-choice round with a
+recommended default on each — the questions that actually change the cost: do you need the
+**orderbook ladder** or just the price, **how many markets**, over what span, at what resolution.
+"BTC 5m for last week" is 2,016 markets, and the two answers above swing the credit cost by
+orders of magnitude.
+
 ## Install
 
 ### In the Claude app

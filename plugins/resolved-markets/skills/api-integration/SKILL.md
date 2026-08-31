@@ -36,12 +36,19 @@ Two questions decide most of the code, and guessing wrong means a rewrite:
 2. **How much data?** A single lookup, a backfill of months, or a process that runs forever? This
    sets pagination, retry policy, and whether credits are a real constraint.
 
+**Put them to the user with the `AskUserQuestion` tool** — one batched call, concrete options,
+the recommended default first — rather than guessing or asking in prose. Ready-made option sets
+for both, plus language, key storage, and the depth/market-count questions that decide what the
+script costs to run, are in `references/clarifying-questions.md`.
+Don't ask what the request already answers: "stream BTC prices to a CSV" needs no questions.
+
 Then, only if the answer isn't already obvious from what they've said:
 
 | Decision | Ask | Default |
 |---|---|---|
 | Language / runtime | Python, TypeScript, shell, something else? | Python |
-| Depth per row | Best bid/ask, size at the touch (`touchsize=true`), or the full ladder (`includebook=true`)? | best bid/ask — the ladder is ~10× heavier and caps pages at 2,000 |
+| Depth per row | **Do they need the orderbook levels?** Best bid/ask, size at the touch (`touchsize=true`), or the full ladder (`includebook=true`)? | best bid/ask — the ladder is ~10× heavier and caps pages at 2,000 |
+| Market count | **How many markets does it cover?** One, a fixed recent sample, or a whole category over a date range? | one — confirm before fanning out; BTC 5m alone is 288 markets/day |
 | Granularity | Every stored tick, or downsampled candles (`interval=`)? | candles for anything wider than a few hours |
 | Where output goes | Printed, a file, a dataframe, a database? | print, then adapt |
 | Key storage | Environment variable, secret manager, CI secret? | `RESOLVED_MARKETS_API_KEY` env var |

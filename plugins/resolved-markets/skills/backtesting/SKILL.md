@@ -30,6 +30,12 @@ A backtest request is almost never fully specified, and the unstated parts are e
 that decide the result. **Ask before running, not after** — a simulation built on the wrong
 assumptions looks just as convincing as a correct one.
 
+**Use the `AskUserQuestion` tool for this**, in **one batched call** with the recommended default
+first in each list, so the user accepts the whole set in a single pass instead of answering six
+questions in sequence. Ready-made option sets — direction, exit, universe, costs, plus the
+orderbook-depth and market-count questions that decide what the run costs — are in
+`references/clarifying-questions.md`. Ask once, then commit and run.
+
 Work through these. Propose a concrete default for each so the user can accept the whole set at
 once rather than answering six questions:
 
@@ -56,6 +62,13 @@ once rather than answering six questions:
 
 **Confirm the shape of the answer too.** A win rate, a P&L curve, a per-trade table, and "is this
 edge real?" need different work. Ask which one they want before producing all four.
+
+**And confirm the two knobs that set what the run costs**, since a backtest is the most expensive
+thing this data gets used for: **how many markets** (20–50 settled windows is the default; BTC 5m
+produces 288 a day, so "last month" is ~8,600 markets and thousands of credits) and **how much
+book per row** — `touchsize=true` is enough to check a stake fits at the touch, while
+`includebook=true` is ~10× heavier and only earns its cost when the stake genuinely walks the
+ladder (see Rule 4).
 
 ## Rule 1 — candle OHLC is mid-only. Never fill at `close`.
 

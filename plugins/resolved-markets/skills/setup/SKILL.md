@@ -12,6 +12,11 @@ disable-model-invocation: true
 Walk the user through this in order. Stop at the first step that already succeeds — most people
 only need step 1.
 
+Don't open with a questionnaire — **check step 1 first**, because it usually answers everything.
+Only if the connector isn't available, ask (with `AskUserQuestion`, options not prose) how they
+want to connect: **the hosted connector via OAuth** *(recommended — sign in once, no key to
+paste)*, or **an API key** *(only needed for scripts, or a client that can't do OAuth)*.
+
 ## Step 1 — Is the connector already working?
 
 Try `list_categories` from the `resolvedmarkets` MCP server.

@@ -1,7 +1,7 @@
 {
   "name": "resolved-markets",
   "displayName": "Resolved Markets",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Live and historical Polymarket prediction-market orderbook data: odds, price history, executed trades, settlement results, and backtesting. Covers crypto, sports, weather, economics, social, and equities markets, plus Hyperliquid perpetual futures.",
   "author": {
     "name": "Resolved Markets",

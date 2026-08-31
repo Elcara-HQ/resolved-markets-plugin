@@ -18,6 +18,9 @@ SHOULD (each adds credit):
   live for the slot (the sooner `expiresIn` is the current window).
 
 MUST NOT:
+- Stop to ask clarifying questions instead of answering. This request is unambiguous and cheap
+  (~2 credits) — resolving the current window and quoting it is the correct behavior. Asking about
+  depth, market count, or time span here is friction, not diligence, and fails this criterion.
 - Recompute a mid as a plain average of bid and ask when one side is missing.
 - Claim Resolved Markets is affiliated with Polymarket.
 - Invent a conditionId, slug, or price not present in tool output.

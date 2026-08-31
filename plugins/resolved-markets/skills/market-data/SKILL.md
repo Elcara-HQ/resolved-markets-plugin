@@ -50,12 +50,28 @@ game?", "what markets exist?" are unambiguous — resolve and answer. Asking a c
 there is friction, not diligence.
 
 **Ask first when a wrong guess would waste the user's credits or produce the wrong artifact.**
-That means: any pull spanning more than a few hours, anything with `includebook=true`, anything
-described vaguely ("get me BTC data", "analyse this market", "export the history"), or anything
-you would run more than a handful of times.
+Concretely, ask before you run when the request:
 
-When you do ask, ask only the questions whose answers change what you run, and offer a sensible
-default with each so the user can say "just do that":
+- spans **more than a few hours**, or **more than one market** ("BTC 5m for last week" is 2,016
+  markets, not one);
+- would need the **full orderbook ladder** (`includebook=true`) rather than top-of-book;
+- is **vague about the artifact** — "get me BTC data", "analyse this market", "export the
+  history";
+- would be run more than a handful of times.
+
+**Ask with the `AskUserQuestion` tool when it is available** — one batched call, up to 4
+questions, 2–4 concrete options each, the recommended default first and marked
+`(Recommended)`, with the credit cost in the option description where it differs materially.
+One round, then commit and do the work. Where the tool isn't available, ask as a single short
+numbered block naming the default for each.
+
+The two that are wrong most often, so ask them explicitly rather than assuming:
+
+- **"Do you need the orderbook itself, or just the price?"** — top of book *(default)* / size at
+  the touch (`touchsize=true`) / full ladder (`includebook=true`, ~10× heavier rows, page cap
+  drops to 2,000).
+- **"How many markets?"** — just this one *(default)* / the last 20–50 settled windows / a date
+  range. BTC 5m alone is 288 markets a day.
 
 | Decision | Ask | Default if they don't care |
 |---|---|---|
@@ -65,6 +81,12 @@ default with each so the user can say "just do that":
 | **Depth** | Best bid/ask only, size at the touch, or the full ladder? | Top-of-book. **Only add `includebook=true` if they need levels** — rows are ~10× heavier and the page cap drops to 2,000 |
 | **Side** | UP only, or both legs? | `side=UP` — DOWN mid ≈ 1 − UP mid on the same tick |
 | **Scale** | One market, or a series across many windows? | One, then confirm before fanning out — BTC 5m alone is 288 markets/day |
+
+Ready-made option sets, phrased for `AskUserQuestion` and covering output format too:
+`references/clarifying-questions.md`.
+
+**Never ask what you can look up.** Whether a subcategory exists, what the current window's slug
+is, whether a market settled — those are 1-credit calls, not questions.
 
 **Say what it will cost before a large pull.** Discovery is 1 credit; snapshots and trades are 5
 per page. "That's about 40 pages, roughly 200 credits — want me to narrow the window or sample
@@ -222,5 +244,8 @@ Full lifecycle table (when each series opens, when its book becomes usable, when
 6. **Mind the user's credits.** Every call spends their allowance. Prefer 1-credit discovery
    calls; don't fan out speculatively. If they have their own pipeline for the same data and told
    you to use it, use that.
-7. **When results look wrong, check `references/pitfalls.md`** before
+7. **Ask before a big or ambiguous pull, not after.** Depth (`includebook=true`?) and market count
+   are the two that silently multiply cost — put them to the user with `AskUserQuestion` and a
+   recommended default. One round of questions, then commit.
+8. **When results look wrong, check `references/pitfalls.md`** before
    declaring data missing. Most anomalies there are documented, intended behavior.
