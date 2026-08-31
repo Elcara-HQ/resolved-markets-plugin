@@ -5,6 +5,14 @@ Documented behaviors that look like bugs. Check here before reporting missing or
 - `/snapshots` default order is **DESC** (newest first) — paging "to the end" reaches the market *open*, not its settlement.
 - Unwindowed `/snapshots` on a live market covers only ~36 h — pass `from`/`to` for full history.
 - Two live markets per crypto slot near window boundaries — disambiguate by `expiresIn`.
+- **`expiresIn` is MILLISECONDS, not seconds.** `expiresIn: 5239` is **5.2 seconds** of life
+  left, not 87 minutes. Misreading it is how a caller lists a market, then gets a `410` on the
+  very next call because the window rolled in between. Treat anything under ~30,000 as "about
+  to expire" and resolve it against stored history rather than the live book.
+- **`GET /v1/markets/:id/orderbook` returns `410` with `error: "market_expired"`** (plus `slug`
+  and `end_date`) for a market that has expired — a plain `404` means the id/slug is unknown.
+  The two are different actions: on a `410` re-query the same market with `/api/snapshot` or
+  `/v1/markets/:id/snapshots`; on a `404` fix the identifier.
 - `crypto` = `""` on non-crypto rows; `crypto`/`crypto_price` fields are omitted entirely from non-crypto snapshot/orderbook/summary responses.
 - Clamped mid convention: never "fix" a 0.995 mid on a one-sided book — that's the correct settled-market reading, and a raw `(bid+ask)/2` over a missing side is wrong. **`spread` is clamped the same way**, so a one-sided book reports a tight-looking spread that is not liquidity — require `best_bid > 0 && best_ask > 0` first.
 - **A `sequence_number` jump is NOT a missed update** — it counts book events applied, and capture stores ~1 row per 50 ms, so 98.4% of adjacent rows jump by more than 1. It also resets on re-subscribe and is `0` on backfilled rows. Never build gap detection on it.
@@ -33,6 +41,7 @@ Documented behaviors that look like bugs. Check here before reporting missing or
 | `200`, trades `total: 0` | Market predates trade capture or had no fills | Normal — report an empty tape, don't retry |
 | `200`, `total: null` on snapshots | `count=false` was set, or the count sub-query timed out — `data` rows are still valid | Use the rows; don't discard them |
 | Snapshots stop ~36 h back on a live market | Unwindowed default window | Pass explicit `from`/`to` |
-| Two markets for one crypto slot | Boundary pre-subscribe | Take the smaller `expiresIn` |
+| Two markets for one crypto slot | Boundary pre-subscribe | Take the smaller `expiresIn` (ms) |
+| `410 market_expired` from `/orderbook` | The market rolled between your list and your read | Re-read it via `/api/snapshot` or `/snapshots`; it is not a bad id |
 | `by-slug` says a live market is `active: false` | Looked it up by raw conditionId | Look up by slug, or use `/v1/markets/live` for status |
 | Mid price 0.5 on a market that should be decided | You recomputed mid yourself from a one-sided book | Use the API's `mid_price` (clamp convention) |

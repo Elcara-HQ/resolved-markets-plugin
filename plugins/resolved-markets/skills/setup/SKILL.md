@@ -94,6 +94,33 @@ it isn't.
 If the user's catalog ever disagrees with a live response, the live response is right — say so and
 re-check with `list_categories` rather than trusting the bundled table.
 
+## If a tool call fails with "No approval received"
+
+This is the MCP **client's** approval handshake timing out, not an API error and not a problem
+with the key or the connector. It shows up as an intermittent failure on calls that are working
+fine seconds later: in one reported session four calls failed this way and three succeeded on an
+immediate retry with byte-identical arguments.
+
+Two things to tell the user, in this order:
+
+1. **Retry the call once.** An identical retry almost always succeeds. Nothing is created or
+   changed by any of these tools, so retrying is always safe — there is no double-write to worry
+   about. Only investigate further if the *same* call fails repeatedly.
+2. **Turn on always-allow for this connector**, which removes the per-call prompt that is timing
+   out and stops the problem recurring:
+   - **Claude Code**: `/permissions`, then add `mcp__resolvedmarkets__*` to the allow list — or
+     choose **Always allow** the next time a Resolved Markets tool asks.
+   - **Claude app**: connector settings for **Resolved Markets** → allow its tools without asking.
+
+   This is a reasonable thing to do here specifically because **every one of the 14 tools is
+   read-only**. They are all HTTP GETs: they place no orders, touch no wallet, and write nothing.
+   The server declares that in its manifest (`readOnlyHint`, `destructiveHint: false`,
+   `idempotentHint`), which is the signal a client uses to skip the prompt — so on a client that
+   honours those annotations the prompts should not appear at all.
+
+The one real cost of a retry is credits: a failed call is not billed (only `2xx` responses are),
+but a *successful* retry is, so a call that fails and then succeeds costs what one call costs.
+
 ## What they can do now
 
 - Ask for live odds in plain English — *"what are the BTC 5-minute Polymarket odds right now?"*

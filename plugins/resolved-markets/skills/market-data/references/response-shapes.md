@@ -99,6 +99,13 @@ With `interval=` the envelope gains `"interval"`, `total` = bucket count, and ro
   "vwap_mid": 0.5502, "avg_spread": 0.0099,
   "avg_best_bid": 0.5452, "avg_best_ask": 0.5552,
   "avg_bid_depth": 3361.03, "avg_ask_depth": 28978.81,
+  // CLOSING quote/depth of the bucket, as opposed to the avg_* means above. For a fill
+  // assumption at the end of a bar these are the honest numbers — avg_* blends the whole bucket.
+  "last_best_bid": 0.545, "last_best_ask": 0.555,
+  "last_bid_depth": 3120.4, "last_ask_depth": 27411.9,
+  // Bid RANGE inside the bucket. open/high/low/close are all derived from mid_price, so only
+  // these can answer "was my stop crossed inside this bar?" on an executable quote.
+  "min_best_bid": 0.541, "max_best_bid": 0.549,
   "crypto_price": 64152.765, "snapshot_count": "17" }        // string!
 ```
 
@@ -107,9 +114,16 @@ With `interval=` the envelope gains `"interval"`, `total` = bucket count, and ro
 { "market_id": "0xe1502203…", "asset_id": "7637523728…",     // = snapshot token_id
   "timestamp": "2026-08-04 22:05:16.725", "price": 0.6, "size": 5,
   "side": "BUY",                                             // aggressor: BUY | SELL
-  "category": "crypto", "subcategory": "",                   // subcategory may be ""
+  "category": "crypto", "subcategory": "",                   // ALWAYS "" here — see below
+  "transaction_hash": "0x9f3c…",                             // the Polygon tx that settled it
+  "fee_rate_bps": 0,                                         // taker fee, basis points
   "token_side": "UP" }                                       // may be null (map via asset_id)
 ```
+`subcategory` is **always an empty string on this endpoint** — unlike every other route, which
+populates it — and `crypto` may be null. Take both from `/v1/markets/metadata` or the live list
+for the same `market_id`; don't read them off a trade row and don't treat `""` as "no subcategory".
+`transaction_hash` is the **only** reliable join key to `/v1/wallets/:address/fills` — join on the
+hash, never on time (block time is not match time).
 
 **GET /v1/markets/:id/summary**
 ```jsonc
