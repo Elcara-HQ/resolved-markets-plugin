@@ -86,11 +86,12 @@ on Free's 5,000/month.
 ## Credits and tiers
 
 Every metered request costs credits from a monthly allowance. **All tiers are metered, including
-Free.** Only successful (2xx) responses are charged.
+Free.** Only successful (2xx) responses are charged — but `X-Credits-Cost` is still *sent* on a
+4xx, so tally it only after the status check (the client below does).
 
 | Request | Credits |
 |---|---|
-| `/v1/markets/:id/snapshots`, `/v1/markets/:id/trades` | 5 |
+| `/v1/markets/:id/snapshots`, `/v1/markets/:id/trades`, `/v1/wallets/:address/fills` | 5 |
 | `/v1/markets/:id/summary`, `/api/snapshot` | 3 |
 | Everything else metered (live, orderbook, by-slug, metadata, categories, history, exchange) | 1 |
 | `/health`, `/v1/public-stats`, `/v1/api-keys/validate`, `/v1/backtest/templates`, `/v1/backtest/runs/*`, **every WebSocket message** | **0** |
@@ -118,13 +119,22 @@ Pro, which share 300.
 Full route-by-route table, rows-per-credit, and the cheapest call for each job:
 `references/cost-model.md`.
 
-### `X-Credits-*` are invisible to browser JavaScript
+### Reading the meter from browser JavaScript
 
-The API's `Access-Control-Expose-Headers` lists only `X-RateLimit-Limit`, `X-RateLimit-Remaining`
-and `X-RateLimit-Reset` — **not** the credit headers. They are sent on every response and any
-server-side client (curl, Python, Node) reads them fine, but a cross-origin `fetch()` in a browser
-gets `null` from `response.headers.get('X-Credits-Cost')`. Don't build a browser-side credit meter
-on them; meter server-side, or track spend from your own call counts.
+Both credit headers are in `Access-Control-Expose-Headers`, so a cross-origin `fetch()` reads them
+directly — no server-side proxy needed for a browser credit meter:
+
+```js
+const r = await fetch(url, { headers: { 'X-API-Key': key } });
+r.headers.get('X-Credits-Cost');       // "5"
+r.headers.get('X-Credits-Remaining');  // "4926435"
+```
+
+The full exposed set is `X-RateLimit-Limit`/`-Remaining`/`-Reset`, `X-Credits-Cost`,
+`X-Credits-Remaining`, `X-Cache`, `X-Total-Count`, `X-Limit`, `X-Offset`, `X-Interval`,
+`X-Row-Count`, `X-Format`, `X-Onchain-Enriched`, `X-Tier-Scope-Filtered` and `X-Key-Limit-Notice`.
+Anything outside that list is invisible to browser JS even though curl and any server-side client
+sees it.
 
 ### `X-Credits-Remaining` is a gauge, not a ledger
 

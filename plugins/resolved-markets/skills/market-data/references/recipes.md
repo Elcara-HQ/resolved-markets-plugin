@@ -2,7 +2,7 @@
 
 One-shot patterns for the common jobs (base URL and `X-API-Key` header implied on every call).
 
-**R1 — Current live market of a crypto series.** `GET /v1/markets/by-slug/btc-updown-5m` (1 credit) resolves straight to the current window's full identity. Or pull `/v1/markets/live?crypto=BTC&timeframe=5m` and, if two markets come back (boundary pre-subscribe), take the smaller `expiresIn`.
+**R1 — Current live market of a crypto series.** `GET /v1/markets/by-slug/btc-updown-5m` (1 credit) resolves straight to the current window's full identity. Or pull `/v1/markets/live?crypto=BTC&timeframe=5m` — four rows come back (the in-flight window plus three pre-subscribed successors); take the one with `status: "live"`.
 
 **R2 — The market that was live at a past instant T.** `GET /v1/markets/history/recent?crypto=BTC&timeframe=5m&since=<T-10min>&before=<T>` and pick the row whose `first_seen ≤ T ≤ last_seen` (for crypto windows, `end_date` tells you the exact window). Then pull its data windowed. Alternative when you just need the book state: `GET /api/snapshot?timestamp=<T>&crypto=BTC&timeframe=5m` (3 credits, no id needed, 1-hour lookback).
 

@@ -28,11 +28,16 @@ Note the two that surprise people: **`/api/snapshot/latest` is 1, while `/api/sn
 - **`/v1/api-keys/validate` is not merely 0-cost, it is outside the metering middleware** — it
   returns *no* credit headers at all. That makes it the right start-up liveness check.
 
-**`X-Credits-*` are invisible to browser JavaScript.** The API's
-`Access-Control-Expose-Headers` lists only `X-RateLimit-Limit`, `X-RateLimit-Remaining` and
-`X-RateLimit-Reset` — **not** `X-Credits-Cost` or `X-Credits-Remaining`. They are sent, and any
-server-side client (curl, Python, Node) reads them fine, but a cross-origin `fetch()` in a browser
-gets `null`. Don't build a browser-side credit meter on them.
+**Both credit headers are readable from browser JavaScript.**
+`Access-Control-Expose-Headers` includes `X-Credits-Cost` and `X-Credits-Remaining` alongside
+`X-RateLimit-Limit`/`-Remaining`/`-Reset`, `X-Cache`, `X-Total-Count`, `X-Limit`, `X-Offset`,
+`X-Interval`, `X-Row-Count`, `X-Format`, `X-Onchain-Enriched`, `X-Tier-Scope-Filtered` and
+`X-Key-Limit-Notice` — so a cross-origin `fetch()` can meter spend directly. Anything outside that
+list is invisible to browser JS even though curl and any server-side client sees it.
+
+**A `4xx` sends `X-Credits-Cost` but is never charged.** Only 2xx responses deduct (verified: 13
+consecutive 400/404/410 responses left `X-Credits-Remaining` unchanged, each carrying a non-zero
+`X-Credits-Cost`). Add the header to a spend tally only *after* checking the status code.
 
 ## Rows per credit — the number that actually decides cost
 

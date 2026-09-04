@@ -97,9 +97,8 @@ re-check with `list_categories` rather than trusting the bundled table.
 ## If a tool call fails with "No approval received"
 
 This is the MCP **client's** approval handshake timing out, not an API error and not a problem
-with the key or the connector. It shows up as an intermittent failure on calls that are working
-fine seconds later: in one reported session four calls failed this way and three succeeded on an
-immediate retry with byte-identical arguments.
+with the key or the connector. It shows up as an intermittent failure on calls that work fine
+seconds later.
 
 Two things to tell the user, in this order:
 

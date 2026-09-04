@@ -24,7 +24,7 @@ Each item: `conditionId`, `slug`, `question`/`label`, `category`, `subcategory`,
 
 Traps:
 - `crypto` is an **empty string on non-crypto markets** — filtering by `crypto` implicitly excludes every other category.
-- Near a window boundary, crypto slots pre-subscribe the next window (~2 min early, these markets trade pre-open), so e.g. `?crypto=BTC&timeframe=5m` briefly returns **two** live markets. Take the one with the smaller `expiresIn` as the current window.
+- Crypto slots pre-subscribe their successors up to **15 minutes** ahead (these markets trade pre-open), so `?crypto=BTC&timeframe=5m` returns **four** near-identical rows at all times — every one of them `active: true`, `expired: false`. **Disambiguate on `status`, never on array position or `expiresIn`:** `upcoming` (pre-open, usually already quoting) · `live` (trading now — exactly one per coin×timeframe slot at every instant) · `settling` (past `endDate`, still inside the capture grace window) · `expired`. `startDate` gives the window's open. Sorting by `expiresIn` is not a substitute: a market that has just closed sits at `expiresIn: 0` and sorts *first*.
 - `?crypto=BTC` returns **both** the up/down family and the hit-price strikes; add `timeframe=5m`/`1d`/etc. to isolate one series (`timeframe=hit-price` for the strike ladder).
 
 ### GET /v1/markets/by-slug/:slug — 1 credit
@@ -80,7 +80,7 @@ curl -H "X-API-Key: $KEY" \
 
 Executed-fill tape (`last_trade_price` events) for one market. Params: `side`, `from`/`to`, `order` (`desc` default), `limit` (max 5000), `offset`, `count=false`. Rows: `asset_id` (= snapshot `token_id`), `timestamp` (our capture time — there is no separate exchange event time), `price`, `size`, `side` (`BUY`/`SELL` aggressor), `token_side`, `category`, `subcategory` (may be empty string on some rows).
 
-Coverage caveats: this is the tape **as observed live** — trade capture started later than snapshot capture and collector outages leave gaps. A market with no captured trades returns `200` with `total: 0` (not an error); a completely unknown market returns `404`. No `transaction_hash`. `token_side` may be `null` on closed markets queried without `?side=` — map it yourself from `asset_id`.
+Coverage caveats: this is the tape **as observed live** — trade capture started later than snapshot capture and collector outages leave gaps. A market with no captured trades returns `200` with `total: 0` (not an error); a completely unknown market returns `404`. Every row carries `transaction_hash` (the settling Polygon tx) and `fee_rate_bps` — `transaction_hash` is the join key to `/v1/wallets/:address/fills`; never join those two on time. `token_side` may be `null` on closed markets queried without `?side=` — map it yourself from `asset_id`.
 
 ### GET /v1/markets/:id/summary — 3 credits
 
