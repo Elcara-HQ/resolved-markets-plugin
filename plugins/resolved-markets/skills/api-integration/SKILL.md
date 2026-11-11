@@ -109,8 +109,8 @@ or time, and **Free is crypto-only, not BTC-only** — all 7 coins (BTC, ETH, SO
 BNB) and all timeframes. Sports, weather, economics, social, equities and the Hyperliquid exchange
 endpoints start at Scale.
 
-Prepaid credit packs are available without changing tier: $5 → 4,000 credits, $10 → 10,000,
-$50 → 100,000.
+Prepaid credit packs top up a paid tier without changing it (Free must subscribe first):
+$5 → 10,000 credits, $20 → 100,000, $50 → 500,000.
 
 **Read your tier straight off the response headers** — there is no API-key-callable tier endpoint.
 `X-RateLimit-Limit` pins the row (300 / 1000 / 3000) and `X-Credits-Remaining` separates Free from
